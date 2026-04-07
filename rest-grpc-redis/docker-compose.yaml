@@ -1,0 +1,129 @@
+services:
+  booking-db:
+    image: postgres:15.2-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: ${BOOKING_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${BOOKING_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${BOOKING_POSTGRES_DB}
+    volumes:
+        - booking-db-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${BOOKING_POSTGRES_USER} -d ${BOOKING_POSTGRES_DB}"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+  booking-migrations:
+    image: migrate/migrate
+    depends_on:
+      booking-db:
+        condition: service_healthy
+    volumes:
+      - ./booking/migrations:/migrations:ro
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://${BOOKING_POSTGRES_USER}:${BOOKING_POSTGRES_PASSWORD}@booking-db:5432/${BOOKING_POSTGRES_DB}?sslmode=disable",
+      "up"
+    ]
+
+  booking-api:
+    build:
+      context: booking
+    env_file:
+      - ./booking/.env
+    ports:
+      - 7070:${BOOKING_API_PORT}
+    depends_on:
+      booking-db:
+        condition: service_healthy
+
+  flights-db:
+    image: postgres:15.2-alpine
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_USER: ${FLIGHTS_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${FLIGHTS_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${FLIGHTS_POSTGRES_DB}
+    volumes:
+        - flights-db-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${FLIGHTS_POSTGRES_USER} -d ${FLIGHTS_POSTGRES_DB}"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+  flights-migrations:
+    image: migrate/migrate
+    depends_on:
+      flights-db:
+        condition: service_healthy
+    volumes:
+      - ./flights/migrations:/migrations:ro
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://${FLIGHTS_POSTGRES_USER}:${FLIGHTS_POSTGRES_PASSWORD}@flights-db:5432/${FLIGHTS_POSTGRES_DB}?sslmode=disable",
+      "up"
+    ]
+
+  flights-api:
+    build:
+      context: flights
+    env_file:
+      - ./flights/.env
+    depends_on:
+      flights-db:
+        condition: service_healthy
+    networks:
+      - default
+      - redisnet
+
+  redis-master:
+    image: redis:7.2.6-alpine
+    volumes:
+      - cache-master:/data
+    networks:
+      redisnet:
+        ipv4_address: 172.28.0.10
+
+  redis-replica:
+    image: redis:7.2.6-alpine
+    depends_on:
+      - redis-master
+    volumes:
+      - cache-replica:/data
+    networks:
+      redisnet:
+        ipv4_address: 172.28.0.11
+    command: >
+      sh -c "redis-server --replicaof redis-master 6379"
+
+  redis-sentinel:
+    image: redis:7.2.6-alpine
+    depends_on:
+      - redis-master
+      - redis-replica
+    volumes:
+      - ./sentinel:/etc/redis
+    networks:
+      redisnet:
+        ipv4_address: 172.28.0.12
+    command: ["redis-server", "/etc/redis/sentinel.conf", "--sentinel"]
+
+networks:
+  redisnet:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+volumes:
+  booking-db-data:
+    external: false
+  flights-db-data:
+    external: false
+  cache-master:
+    external: false
+  cache-replica:
+    external: false

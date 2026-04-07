@@ -1,0 +1,190 @@
+openapi: 3.0.3
+info:
+  title: Auth Service API
+  version: 1.0.0
+
+tags:
+  - name: Auth
+
+components:
+  headers:
+    XRequestId:
+      name: X-Request-Id
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    UserRole:
+      type: string
+      enum: [USER, SELLER, ADMIN]
+
+    ErrorCode:
+      type: string
+      enum:
+        - VALIDATION_ERROR
+        - TOKEN_INVALID
+        - TOKEN_EXPIRED
+        - REFRESH_TOKEN_INVALID
+        - USER_ALREADY_EXISTS
+        - WRONG_CREDENTIALS
+        - ACCESS_DENIED
+
+    ErrorResponse:
+      type: object
+      properties:
+        error_code:
+          $ref: "#/components/schemas/ErrorCode"
+        message:
+          type: string
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+      required: [error_code, message]
+
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        password:
+          type: string
+          minLength: 6
+          maxLength: 100
+      required: [name, password]
+
+    LoginRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        password:
+          type: string
+      required: [name, password]
+
+    TokenPairResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+      required:
+        - access_token
+        - refresh_token
+
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+      required: [refresh_token]
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      operationId: registerUser
+      headers:
+        - $ref: "#/components/headers/XRequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPairResponse"
+        "400":
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: USER_ALREADY_EXISTS
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      headers:
+        - $ref: "#/components/headers/XRequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPairResponse"
+        "400":
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      operationId: refreshToken
+      headers:
+        - $ref: "#/components/headers/XRequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPairResponse"
+        "400":
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: REFRESH_TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

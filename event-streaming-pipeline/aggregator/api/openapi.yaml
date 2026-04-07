@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: Movie Analytics Aggregation API
+  version: 1.0.0
+
+paths:
+  /health:
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+
+  /recompute:
+    post:
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /load:
+    post:
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /export:
+    post:
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    OkResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - error_code
+        - message
+      properties:
+        error_code:
+          type: string
+        message:
+          type: string
+
+    TopFilm:
+      type: object
+      required:
+        - movie_id
+        - views
+      properties:
+        movie_id:
+          type: string
+        views:
+          type: integer
+
+    MetricsResponse:
+      type: object
+      required:
+        - dau
+        - mean_watch_time
+        - top_films
+        - conversion_rate
+        - d1
+        - d7
+      properties:
+        dau:
+          type: integer
+        mean_watch_time:
+          type: number
+        top_films:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopFilm'
+        conversion_rate:
+          type: number
+        d1:
+          type: number
+        d7:
+          type: number

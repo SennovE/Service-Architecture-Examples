@@ -1,0 +1,100 @@
+services:
+  auth-db:
+    image: postgres:15.2-alpine
+    env_file:
+      - ./auth/.env
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: ${AUTH_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${AUTH_POSTGRES_DB}
+    volumes:
+        - auth-db-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_POSTGRES_USER} -d ${AUTH_POSTGRES_DB}"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+  auth-migrations:
+    image: migrate/migrate
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    volumes:
+      - ./auth/migrations:/migrations:ro
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://${AUTH_POSTGRES_USER}:${AUTH_POSTGRES_PASSWORD}@auth-db:5432/${AUTH_POSTGRES_DB}?sslmode=disable",
+      "up"
+    ]
+
+  auth-api:
+    build:
+      context: auth
+    env_file:
+      - ./auth/.env
+    ports:
+      - 7070:${AUTH_API_PORT}
+    volumes:
+      - ./auth/public.pem:/app/public.pem:ro
+      - ./auth/private.pem:/app/private.pem:ro
+    environment:
+      AUTH_PUBLIC_KEY_PATH: "/app/public.pem"
+      AUTH_PRIVATE_KEY_PATH: "/app/private.pem"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  products-db:
+    image: postgres:15.2-alpine
+    env_file:
+      - ./products/.env
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_USER: ${PRODUCTS_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${PRODUCTS_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${PRODUCTS_POSTGRES_DB}
+    volumes:
+        - products-db-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PRODUCTS_POSTGRES_USER} -d ${PRODUCTS_POSTGRES_DB}"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+  products-migrations:
+    image: migrate/migrate
+    depends_on:
+      products-db:
+        condition: service_healthy
+    volumes:
+      - ./products/migrations:/migrations:ro
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://${PRODUCTS_POSTGRES_USER}:${PRODUCTS_POSTGRES_PASSWORD}@products-db:5432/${PRODUCTS_POSTGRES_DB}?sslmode=disable",
+      "up"
+    ]
+
+  products-api:
+    build:
+      context: products
+    env_file:
+      - ./products/.env
+    ports:
+      - 8080:${PRODUCTS_API_PORT}
+    volumes:
+      - ./products/public.pem:/app/public.pem:ro
+    environment:
+      AUTH_PUBLIC_KEY_PATH: "/app/public.pem"
+    depends_on:
+      products-db:
+        condition: service_healthy
+
+volumes:
+  auth-db-data:
+    external: false
+  products-db-data:
+    external: false

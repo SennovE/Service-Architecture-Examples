@@ -1,0 +1,64 @@
+edition = "2024";
+
+package flights;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "/booking/internal/gen/proto";
+
+service Flights {
+    rpc SearchFlights(SearchFlightsRequest) returns (stream FlightResponse);
+    rpc GetFlight(GetFlightRequest) returns (FlightResponse);
+    rpc ReserveSeats(ReserveSeatsRequest) returns (ReserveSeatsResponse);
+    rpc ReleaseReservation(ReleaseReservationRequest) returns (ReleaseReservationResponse);
+}
+
+message SearchFlightsRequest {
+    string origin = 1;
+    string destination = 2;
+    google.protobuf.Timestamp departure_date = 3;
+}
+
+message GetFlightRequest {
+    string flight_id = 1;
+}
+
+message FlightResponse {
+    string id = 1;
+    string num = 2;
+    string company = 3;
+    string iata = 4;
+    string departure_airport = 5;
+    string destination_airport = 6;
+    google.protobuf.Timestamp departure_date = 7;
+    google.protobuf.Timestamp destination_date = 8;
+    uint64 total_seats = 9;
+    uint64 available_seats = 10;
+    string price = 11;
+    FlightStatus status = 12;
+}
+
+message ReserveSeatsRequest {
+    string flight_id = 1;
+    string booking_id = 2;
+    uint64 seat_count = 3;
+}
+
+message ReserveSeatsResponse {
+    string price = 1;
+}
+
+message ReleaseReservationRequest {
+    string booking_id = 1;
+}
+
+message ReleaseReservationResponse {
+}
+
+enum FlightStatus {
+    UNSPECIFIED = 0;
+    SCHEDULED = 1;
+    DEPARTED = 2;
+    CANCELLED = 3;
+    COMPLETED = 4;
+}

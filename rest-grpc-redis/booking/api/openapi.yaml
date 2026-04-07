@@ -1,0 +1,308 @@
+openapi: 3.0.3
+info:
+  title: Booking Service API
+  version: 1.0.0
+
+paths:
+  /flights:
+    get:
+      parameters:
+        - in: query
+          name: origin
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: destination
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: date
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flights:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Flight'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /flights/{id}:
+    get:
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flight'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /bookings:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /bookings/{id}:
+    get:
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /bookings/{id}/cancel:
+    post:
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    FlightStatus:
+      type: string
+      enum:
+        - SCHEDULED
+        - DEPARTED
+        - CANCELLED
+        - COMPLETED
+
+    Flight:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        num:
+          type: string
+        company:
+          type: string
+        iata:
+          type: string
+        departure_airport:
+          type: string
+        destination_airport:
+          type: string
+        departure_date:
+          type: string
+          format: date-time
+        destination_date:
+          type: string
+          format: date-time
+        total_seats:
+          type: integer
+          format: uint64
+          minimum: 1
+        available_seats:
+          type: integer
+          format: uint64
+          minimum: 0
+        price:
+          type: string
+        status:
+          $ref: '#/components/schemas/FlightStatus'
+      required:
+        - id
+        - num
+        - company
+        - iata
+        - departure_airport
+        - destination_airport
+        - departure_date
+        - destination_date
+        - total_seats
+        - available_seats
+        - price
+        - status
+
+    BookingStatus:
+      type: string
+      enum:
+        - CONFIRMED
+        - CANCELLED
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+          format: uuid
+        passenger_name:
+          type: string
+        passenger_email:
+          type: string
+          format: email
+        flight_id:
+          type: string
+          format: uuid
+        seats:
+          type: integer
+          format: uint64
+          minimum: 1
+        total_price:
+          type: string
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+      required:
+        - id
+        - created_at
+        - user_id
+        - passenger_name
+        - passenger_email
+        - flight_id
+        - seats
+        - total_price
+        - status
+
+    CreateBookingRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        flight_id:
+          type: string
+          format: uuid
+        passenger_name:
+          type: string
+        passenger_email:
+          type: string
+          format: email
+        seat_count:
+          type: integer
+          format: uint64
+          minimum: 1
+      required:
+        - user_id
+        - flight_id
+        - passenger_name
+        - passenger_email
+        - seat_count
+
+    ErrorResponse:
+      type: object
+      properties:
+        error_code:
+          type: string
+        message:
+          type: string
+      required:
+        - error_code
+        - message

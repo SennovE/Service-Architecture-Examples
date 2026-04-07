@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: Movie Service Producer API
+  version: 1.0.0
+
+paths:
+  /health:
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+
+  /events:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovieEvent'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishEventResponse'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /generate:
+    post:
+      parameters:
+        - name: sessions
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+
+components:
+  schemas:
+    OkResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+
+    MovieEvent:
+      type: object
+      required:
+        - event_id
+        - user_id
+        - movie_id
+        - event_type
+        - timestamp
+        - device_type
+        - session_id
+        - progress_seconds
+      properties:
+        event_id:
+          type: string
+          format: uuid
+
+        user_id:
+          type: string
+          minLength: 1
+
+        movie_id:
+          type: string
+          minLength: 1
+
+        event_type:
+          $ref: '#/components/schemas/EventType'
+
+        timestamp:
+          type: string
+          format: date-time
+
+        device_type:
+          $ref: '#/components/schemas/DeviceType'
+
+        session_id:
+          type: string
+          minLength: 1
+
+        progress_seconds:
+          type: integer
+          minimum: 0
+
+    EventType:
+      type: string
+      enum:
+        - VIEW_STARTED
+        - VIEW_FINISHED
+        - VIEW_PAUSED
+        - VIEW_RESUMED
+        - LIKED
+        - SEARCHED
+
+    DeviceType:
+      type: string
+      enum:
+        - MOBILE
+        - DESKTOP
+        - TV
+        - TABLET
+
+    PublishEventResponse:
+      type: object
+      required:
+        - event_id
+      properties:
+        event_id:
+          type: string
+          format: uuid
+
+    ErrorResponse:
+      type: object
+      properties:
+        error_code:
+          type: string
+        message:
+          type: string
+      required:
+        - error_code
+        - message
