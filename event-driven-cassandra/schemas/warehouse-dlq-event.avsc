@@ -1,0 +1,50 @@
+{
+  "type": "record",
+  "name": "WarehouseDlqEvent",
+  "namespace": "warehouse.avro",
+  "doc": "Dead Letter Queue event for failed warehouse events",
+  "fields": [
+    {
+      "name": "original_event",
+      "type": "string",
+      "doc": "Original event serialized as JSON string"
+    },
+    {
+      "name": "error_code",
+      "type": "string",
+      "default": "PROCESSING_ERROR"
+    },
+    {
+      "name": "error_reason",
+      "type": "string"
+    },
+    {
+      "name": "failed_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "kafka_metadata",
+      "type": {
+        "type": "record",
+        "name": "KafkaMetadata",
+        "fields": [
+          {
+            "name": "topic",
+            "type": "string"
+          },
+          {
+            "name": "partition",
+            "type": "int"
+          },
+          {
+            "name": "offset",
+            "type": "long"
+          }
+        ]
+      }
+    }
+  ]
+}
